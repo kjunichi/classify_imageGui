@@ -1,0 +1,21 @@
+{
+  "name": "elclim",
+  "version": "0.0.1",
+  "description": "A minimal Electron application",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "repository": "https://github.com/kjunichi/gamenrec",
+  "keywords": [
+    "Electron",
+    "tensorflow"
+  ],
+  "author": "@kjunichi",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^1.4.1"
+  },
+  "dependencies": {
+  }
+}
