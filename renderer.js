@@ -5,7 +5,35 @@
 // In the renderer process.
 const electron = require('electron');
 const fs = require('fs');
+const which =require('which');
+const execSync = require('child_process').execSync;
+const exec = require('child_process').exec;
 
+function getPythonPath() {
+    if(process.platform === 'win32') {
+        if(fs.existsSync(`${process.env.USERPROFILE}\\Anaconda3\\python.exe`)) {
+            return `${process.env.USERPROFILE}\\Anaconda3\\python.exe`.replace(/\\/g,"/");
+        }
+    } else {
+        // macOS,Linux
+    }
+}
+function getTfHome(pythonBin) {
+    const buf = execSync(`${pythonBin} -c"import site;print(site.getsitepackages())"`);
+    const libs = buf.toString().replace(/\\\\/g,"/").replace(/'/g,"").replace(/\[/,"").replace(/\]/,"").replace(/\n/,"").split(",");
+
+    for(let i =0; i<libs.length; i++) {
+        console.log(libs[i]);
+        if(fs.existsSync(`${libs[i].trim()}/tensorflow`)) {
+            return libs[i];
+        }
+    }
+    return "";
+}
+
+const pythonBin = getPythonPath();
+const tfHome = getTfHome(pythonBin);
+    
 const con = document.getElementById("con");
 
 con.innerHTML = "";
@@ -30,9 +58,8 @@ image.onload = function () {
     const d64str = canvas.toDataURL("image/jpeg").replace(/^data:image\/jpeg;base64,/,"");
     fs.writeFileSync(`${__dirname}\\dropImage.jpg`, d64str,{encoding: 'base64'});
     const imagePath = `${__dirname}\\dropImage.jpg`.replace(/\\/g,"/");
-    const exec = require('child_process').exec;
-    const pythonHome = `${(process.env.USERPROFILE).replace(/\\/g,"/")}/anaconda3/`;
-    exec(`${pythonHome}/python ${pythonHome}/lib/site-packages/tensorflow/models/image/imagenet/classify_image.py --image_file ${imagePath}`, (err, stdout, stderr) => {
+    
+    exec(`${pythonBin} ${tfHome}/tensorflow/models/image/imagenet/classify_image.py --image_file ${imagePath}`, (err, stdout, stderr) => {
     if (err) {
         console.log(err);
     }

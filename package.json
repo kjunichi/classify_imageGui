@@ -17,5 +17,6 @@
     "electron": "^1.4.1"
   },
   "dependencies": {
+    "which": "^1.2.12"
   }
 }
