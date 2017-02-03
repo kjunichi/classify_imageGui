@@ -15,4 +15,4 @@ npm install
 npm start
 ```
 
-#### License [MIT](LICENSE.md)
+#### License [MIT](LICENSE)
