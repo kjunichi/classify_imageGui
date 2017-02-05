@@ -65,22 +65,24 @@ function getCorrectOrientationImage(img, orientation, w, h) {
     c2.height = img.height;
     let rotD = 0;
     console.log(`orientation = ${orientation}`)
-    if (orientation == 1) {
-        c2.width = img.width;
-        c2.height = img.height;
-        rotD = 0;
-    } else if (orientation == 6) {
-        c2.width = img.height;
-        c2.height = img.width;
-        rotD = 90;
-    } else if (orientation == 8) {
-        c2.width = img.height;
-        c2.height = img.width;
-        rotD = 270;
-    } else if (orientation == 3) {
-        c2.width = img.height;
-        c2.height = img.width;
-        rotD = 180;
+    if (orientation) {
+        if (orientation == 1) {
+            c2.width = img.width;
+            c2.height = img.height;
+            rotD = 0;
+        } else if (orientation == 6) {
+            c2.width = img.height;
+            c2.height = img.width;
+            rotD = 90;
+        } else if (orientation == 8) {
+            c2.width = img.height;
+            c2.height = img.width;
+            rotD = 270;
+        } else if (orientation == 3) {
+            c2.width = img.height;
+            c2.height = img.width;
+            rotD = 180;
+        }
     }
     const c2ctx = c2.getContext("2d");
     c2ctx.save();
@@ -157,7 +159,7 @@ dropArea.addEventListener('drop', (e) => {
                 canvas.width = canvas.height * (img.width / img.height);
             }
             const ctx = canvas.getContext("2d");
-            ctx.putImageData(getCorrectOrientationImage(img,oEXIF.Orientation,canvas.width,canvas.height), 0,0);
+            ctx.putImageData(getCorrectOrientationImage(img, oEXIF.Orientation, canvas.width, canvas.height), 0, 0);
 
             const d64str = canvas.toDataURL("image/jpeg").replace(/^data:image\/jpeg;base64,/, "");
             const imagePath = `${__dirname}/dropImage.jpg`.replace(/\\\\/g, "/");
