@@ -1,12 +1,12 @@
 {
-  "name": "elclim",
+  "name": "classifyimagegui",
   "version": "0.0.1",
   "description": "A minimal Electron application",
   "main": "main.js",
   "scripts": {
     "start": "electron ."
   },
-  "repository": "https://github.com/kjunichi/gamenrec",
+  "repository": "https://github.com/kjunichi/classify_imageGui",
   "keywords": [
     "Electron",
     "tensorflow"

@@ -1,16 +1,21 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="UTF-8">
-    <title>GamenRec</title>
-  </head>
-  <body>
+
+<head>
+  <meta charset="UTF-8">
+  <title>classify_imageGui</title>
+</head>
+
+<body>
   <div id="dropImg">ここに画像ファイルをドロップ</div>
-<canvas id="world"></canvas>
-<div id="con"></div>  
-  </body>
-  <script>
-    // You can also require other files to run in this process
-    require('./renderer.js')
-  </script>
+  <canvas id="world"></canvas>
+  <div id="con"></div>
+  <button id="sendBtn">Send</button>
+  <script src="./exif.js"></script>
+</body>
+<script>
+  // You can also require other files to run in this process
+  require('./renderer.js')
+</script>
+
 </html>
