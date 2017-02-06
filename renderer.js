@@ -43,6 +43,14 @@ function getTfHome(pythonBin) {
     return "";
 }
 
+function getClassifyImagePy(tf) {
+    const p = `${tf}/tensorflow/models/image/imagenet/classify_image.py`;
+    if(fs.existsSync(p)) {
+        return p;
+    }
+    return "./models/tutorials/image/imagenet/classify_image.py"
+}
+
 function getImageBlob() {
 
 }
@@ -165,8 +173,8 @@ dropArea.addEventListener('drop', (e) => {
             fs.writeFileSync(imagePath, d64str, {
                 encoding: 'base64'
             });
-
-            exec(`${pythonBin} ${tfHome}/tensorflow/models/image/imagenet/classify_image.py --image_file ${imagePath}`, (err, stdout, stderr) => {
+            const cip = getClassifyImagePy(tfHome) 
+            exec(`${pythonBin} ${cip} --image_file ${imagePath}`, (err, stdout, stderr) => {
                 if (err) {
                     console.log(err);
                 }
