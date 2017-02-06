@@ -44,6 +44,7 @@ function getTfHome(pythonBin) {
 }
 
 function getClassifyImagePy(tf) {
+    tf = tf.replace(/\n/,"").replace(/^ /,"").replace(/\r/,"");
     const p = `${tf}/tensorflow/models/image/imagenet/classify_image.py`;
     if(fs.existsSync(p)) {
         return p;
