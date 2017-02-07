@@ -9,6 +9,25 @@ const which = require('which');
 const execSync = require('child_process').execSync;
 const exec = require('child_process').exec;
 
+function checkWebApi(cb) {
+    const url="http://127.0.0.1:8000/"
+    fetch(url, {
+        method: 'GET'
+    }).then((res) => {
+        return res.json();
+    }).then((json) => {
+        console.log(json);
+        if (json.classify_image === "ok") {
+            cb(true);
+        } else {
+            cb(false);
+        }
+    }).catch((e)=>{
+        console.log(e);
+        cb(false);
+    });
+}
+
 function getPythonPath() {
     if (process.platform === 'win32') {
         if (fs.existsSync(`${process.env.USERPROFILE}\\Anaconda3\\python.exe`)) {
@@ -44,16 +63,19 @@ function getTfHome(pythonBin) {
 }
 
 function getClassifyImagePy(tf) {
-    tf = tf.replace(/\n/,"").replace(/^ /,"").replace(/\r/,"");
+    tf = tf.replace(/\n/, "").replace(/^ /, "").replace(/\r/, "");
     const p = `${tf}/tensorflow/models/image/imagenet/classify_image.py`;
-    if(fs.existsSync(p)) {
+    if (fs.existsSync(p)) {
         return p;
     }
     return "./models/tutorials/image/imagenet/classify_image.py"
 }
 
-function getImageBlob() {
-
+function getImageBlob(cb) {
+    const c = document.getElementById("world");
+    c.toBlob((blob) => {
+        cb(blob);
+    }, 'image/jpeg', 0.95)
 }
 
 function getExif(buffer) {
@@ -107,45 +129,7 @@ function getCorrectOrientationImage(img, orientation, w, h) {
     return c2ctx.getImageData(0, 0, w, h);
 }
 
-const sendBtn = document.getElementById("sendBtn");
-sendBtn.addEventListener('click', () => {
-    const url = "";
-    fetch(url, {
-        method: 'POST',
-        body: getImageBlob()
-    }).then((res) => {
-        return res.json();
-    }).then((json) => {
-        console.dir(json);
-    });
-}, false);
-const pythonBin = getPythonPath();
-const tfHome = getTfHome(pythonBin);
-const con = document.getElementById("con");
-
-con.innerHTML = "";
-
-//ドロップされるエリアの取得
-const dropArea = document.getElementById('dropImg');
-
-dropArea.addEventListener('dragover', (e) => {
-    e.preventDefault();
-}, false);
-
-dropArea.addEventListener('dragleave', (e) => {
-    e.preventDefault();
-}, false);
-
-dropArea.addEventListener('drop', (e) => {
-    e.preventDefault();
-
-    const file = e.dataTransfer.files[0];
-    if (!file.type.match(/image\/jpeg/)) {
-        // 指定したファイル以外の場合、処理を続行しない。
-        e.stopPropagation();
-        return false;
-    }
-
+function classify_image(file, webapi) {
     const reader = new FileReader();
     reader.onload = function (e) {
         con.innerText = 'Reader onload start';
@@ -169,21 +153,35 @@ dropArea.addEventListener('drop', (e) => {
             } else {
                 ctx.putImageData(getCorrectOrientationImage(img, 0, canvas.width, canvas.height), 0, 0);
             }
-            const d64str = canvas.toDataURL("image/jpeg").replace(/^data:image\/jpeg;base64,/, "");
-            const imagePath = `${__dirname}/dropImage.jpg`.replace(/\\\\/g, "/");
-            fs.writeFileSync(imagePath, d64str, {
-                encoding: 'base64'
-            });
-            const cip = getClassifyImagePy(tfHome) 
-            exec(`${pythonBin} ${cip} --image_file ${imagePath}`, (err, stdout, stderr) => {
-                if (err) {
-                    console.log(err);
-                }
-                console.log(stdout);
+            if (webapi) {
+                const url = "http://127.0.0.1:8000/";
+                getImageBlob((blob) => {
+                    fetch(url, {
+                        method: 'POST',
+                        body: blob
+                    }).then((res) => {
+                        return res.json();
+                    }).then((json) => {
+                        console.dir(json);
+                        con.innerText = JSON.stringify(json);
+                    });
+                });
+            } else {
+                const d64str = canvas.toDataURL("image/jpeg").replace(/^data:image\/jpeg;base64,/, "");
+                const imagePath = `${__dirname}/dropImage.jpg`.replace(/\\\\/g, "/");
+                fs.writeFileSync(imagePath, d64str, {
+                    encoding: 'base64'
+                });
+                const cip = getClassifyImagePy(tfHome)
+                exec(`${pythonBin} ${cip} --image_file ${imagePath}`, (err, stdout, stderr) => {
+                    if (err) {
+                        console.log(err);
+                    }
+                    console.log(stdout);
 
-                con.innerText = stdout;
-            });
-
+                    con.innerText = stdout;
+                });
+            }
         }
         img.src = URL.createObjectURL(new Blob([buffer], {
             type: "image/jpeg"
@@ -191,6 +189,54 @@ dropArea.addEventListener('drop', (e) => {
         con.innerText = "かんがえちゅう。。。";
     };
     reader.readAsArrayBuffer(file);
-    e.stopPropagation();
-    con.innerText = "Drop end";
+}
+
+const sendBtn = document.getElementById("sendBtn");
+sendBtn.addEventListener('click', () => {
+    const url = "http://127.0.0.1:8000/";
+    getImageBlob((blob) => {
+        fetch(url, {
+            method: 'POST',
+            body: blob
+        }).then((res) => {
+            return res.json();
+        }).then((json) => {
+            console.dir(json);
+        });
+    });
+
 }, false);
+const pythonBin = getPythonPath();
+const tfHome = getTfHome(pythonBin);
+const con = document.getElementById("con");
+
+con.innerHTML = "";
+
+checkWebApi((webapi) => {
+    //ドロップされるエリアの取得
+    const dropArea = document.getElementById('dropImg');
+
+    dropArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+    }, false);
+
+    dropArea.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+    }, false);
+
+    dropArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+
+        const file = e.dataTransfer.files[0];
+        if (!file.type.match(/image\/jpeg/)) {
+            // 指定したファイル以外の場合、処理を続行しない。
+            e.stopPropagation();
+            return false;
+        }
+        classify_image(file, webapi);
+
+        e.stopPropagation();
+        con.innerText = "Drop end";
+    }, false);
+
+});
