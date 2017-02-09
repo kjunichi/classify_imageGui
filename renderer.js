@@ -10,7 +10,7 @@ const execSync = require('child_process').execSync;
 const exec = require('child_process').exec;
 
 function checkWebApi(cb) {
-    const url="http://127.0.0.1:8000/"
+    const url = "http://127.0.0.1:8000/"
     fetch(url, {
         method: 'GET'
     }).then((res) => {
@@ -22,7 +22,7 @@ function checkWebApi(cb) {
         } else {
             cb(false);
         }
-    }).catch((e)=>{
+    }).catch((e) => {
         console.log(e);
         cb(false);
     });
@@ -129,6 +129,48 @@ function getCorrectOrientationImage(img, orientation, w, h) {
     return c2ctx.getImageData(0, 0, w, h);
 }
 
+function classify_image_local(canvas) {
+    const d64str = canvas.toDataURL("image/jpeg").replace(/^data:image\/jpeg;base64,/, "");
+    const imagePath = `${__dirname}/dropImage.jpg`.replace(/\\\\/g, "/");
+    fs.writeFileSync(imagePath, d64str, {
+        encoding: 'base64'
+    });
+    
+    exec(`${pythonBin} ${classifyImageScriptPath} --image_file ${imagePath}`, (err, stdout, stderr) => {
+        if (err) {
+            console.log(err);
+        }
+        console.log(stdout);
+
+        con.innerText = stdout;
+    });
+}
+
+function classify_image_web() {
+    const url = "http://127.0.0.1:8000/";
+    getImageBlob((blob) => {
+        fetch(url, {
+            method: 'POST',
+            body: blob
+        }).then((res) => {
+            return res.json();
+        }).then((json) => {
+            console.dir(json);
+            con.innerText = JSON.stringify(json);
+        });
+    });
+}
+
+function setCanvasSize(c, i) {
+    c.width = 512;
+    c.height = 512;
+    if (i.width > i.height) {
+        c.height = c.width * (i.height / i.width);
+    } else {
+        c.width = c.height * (i.width / i.height);
+    }
+}
+
 function classify_image(file, webapi) {
     const reader = new FileReader();
     reader.onload = function (e) {
@@ -140,47 +182,15 @@ function classify_image(file, webapi) {
         const img = new Image();
 
         img.onload = function () {
-            canvas.width = 512;
-            canvas.height = 512;
-            if (img.width > img.height) {
-                canvas.height = canvas.width * (img.height / img.width);
-            } else {
-                canvas.width = canvas.height * (img.width / img.height);
-            }
+            setCanvasSize(canvas, img);
             const ctx = canvas.getContext("2d");
-            if (oEXIF) {
-                ctx.putImageData(getCorrectOrientationImage(img, oEXIF.Orientation, canvas.width, canvas.height), 0, 0);
-            } else {
-                ctx.putImageData(getCorrectOrientationImage(img, 0, canvas.width, canvas.height), 0, 0);
-            }
-            if (webapi) {
-                const url = "http://127.0.0.1:8000/";
-                getImageBlob((blob) => {
-                    fetch(url, {
-                        method: 'POST',
-                        body: blob
-                    }).then((res) => {
-                        return res.json();
-                    }).then((json) => {
-                        console.dir(json);
-                        con.innerText = JSON.stringify(json);
-                    });
-                });
-            } else {
-                const d64str = canvas.toDataURL("image/jpeg").replace(/^data:image\/jpeg;base64,/, "");
-                const imagePath = `${__dirname}/dropImage.jpg`.replace(/\\\\/g, "/");
-                fs.writeFileSync(imagePath, d64str, {
-                    encoding: 'base64'
-                });
-                const cip = getClassifyImagePy(tfHome)
-                exec(`${pythonBin} ${cip} --image_file ${imagePath}`, (err, stdout, stderr) => {
-                    if (err) {
-                        console.log(err);
-                    }
-                    console.log(stdout);
+            const orientation = oEXIF.Orientation || 0;
+            ctx.putImageData(getCorrectOrientationImage(img, orientation, canvas.width, canvas.height), 0, 0);
 
-                    con.innerText = stdout;
-                });
+            if (webapi) {
+                classify_image_web();
+            } else {
+                classify_image_local(canvas);
             }
         }
         img.src = URL.createObjectURL(new Blob([buffer], {
@@ -191,23 +201,9 @@ function classify_image(file, webapi) {
     reader.readAsArrayBuffer(file);
 }
 
-const sendBtn = document.getElementById("sendBtn");
-sendBtn.addEventListener('click', () => {
-    const url = "http://127.0.0.1:8000/";
-    getImageBlob((blob) => {
-        fetch(url, {
-            method: 'POST',
-            body: blob
-        }).then((res) => {
-            return res.json();
-        }).then((json) => {
-            console.dir(json);
-        });
-    });
-
-}, false);
 const pythonBin = getPythonPath();
 const tfHome = getTfHome(pythonBin);
+const classifyImageScriptPath = getClassifyImagePy(tfHome);
 const con = document.getElementById("con");
 
 con.innerHTML = "";
@@ -218,15 +214,17 @@ checkWebApi((webapi) => {
 
     dropArea.addEventListener('dragover', (e) => {
         e.preventDefault();
+        dropArea.style.backgroundColor = "#229922";
     }, false);
 
     dropArea.addEventListener('dragleave', (e) => {
         e.preventDefault();
+        dropArea.style.backgroundColor = "#88DD88";
     }, false);
 
     dropArea.addEventListener('drop', (e) => {
         e.preventDefault();
-
+        dropArea.style.backgroundColor = "#88DD88";
         const file = e.dataTransfer.files[0];
         if (!file.type.match(/image\/jpeg/)) {
             // 指定したファイル以外の場合、処理を続行しない。
